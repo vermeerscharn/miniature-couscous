@@ -869,8 +869,8 @@ function renderResults(res) {
   if(ei!==null) {
     if(ei>=1.12) interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un <strong>profil vitesse</strong> — tu es performant sur les courtes distances mais perdras plus de temps sur les longues. Mise sur des entraînements d'endurance fondamentale et de tempo prolongé.`;
     else if(ei>=1.07) interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un profil <strong>équilibré tendance vitesse</strong>. Un bon mélange d'endurance longue et de travail au seuil optimisera tes performances.`;
-    else if(ei>=1.04) interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un profil <strong>équilibré</strong>. Tu t'adaptes bien aux différentes distances. Continue à varier les allures.`;
-    else interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un <strong>profil endurance</strong> — tu es fort sur les longues distances. Pour progresser, ajoute du travail de vitesse et des intervalles courts à haute intensité.`;
+   else if(ei>=1.04)txt=`Ton coefficient de Riegel (<strong>${ei}</strong>) révèle un <em>profil bien équilibré</em>. Tu t'adaptes à toutes les distances. Varie les allures pour continuer à progresser.`;
+  else interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un <strong>profil endurance</strong> — tu es fort sur les longues distances. Pour progresser, ajoute du travail de vitesse et des intervalles courts à haute intensité.`;
   }
   const s1pct = Math.round((res.s1Kmh/res.vcKmh)*100);
   interp += `<br><br>Ton <strong>seuil 1</strong> est estimé à ${res.s1Kmh} km/h (${s1pct}% de ta vitesse critique). La majorité de ton volume d'entraînement devrait se situer <em>en dessous</em> de ce seuil (Zone 1–2) pour développer ton moteur aérobie.`;
