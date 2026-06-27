@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculateur Vitesse Critique & Power Law</title>
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #0f1117;
+    --bg2:      #1a1d27;
+    --bg3:      #22263a;
+    --border:   #2e334d;
+    --accent:   #6c63ff;
+    --accent2:  #a78bfa;
+    --green:    #22d3a5;
+    --red:      #ff6b6b;
+    --yellow:   #fbbf24;
+    --orange:   #fb923c;
+    --text:     #e2e8f0;
+    --muted:    #8892a4;
+    --radius:   12px;
+    --shadow:   0 4px 24px rgba(0,0,0,.4);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  h1 { font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 800; letter-spacing: -.5px; }
+  h2 { font-size: 1.2rem; font-weight: 700; color: var(--accent2); margin-bottom: .75rem; }
+  h3 { font-size: .95rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+  p  { color: var(--muted); font-size: .93rem; line-height: 1.7; }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 1.25rem; }
+  .hero {
+    background: linear-gradient(135deg, #1a1d27 0%, #12132a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 1.25rem 2.5rem;
+    text-align: center;
+  }
+  .hero .badge {
+    display: inline-block;
+    background: rgba(108,99,255,.18);
+    color: var(--accent2);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .3rem .9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(108,99,255,.3);
+    margin-bottom: 1rem;
+  }
+  .hero h1 span { color: var(--accent2); }
+  .hero p { max-width: 560px; margin: .75rem auto 0; font-size: 1rem; }
+
+  main { padding: 2.5rem 0 4rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media(max-width:640px){ .grid2 { grid-template-columns: 1fr; } }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .card + .card { margin-top: 1.25rem; }
+
+  /* ── INPUTS ── */
+  .input-group { margin-bottom: 1rem; }
+  label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: .35rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  input[type=text], input[type=number] {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: .6rem .85rem;
+    font-size: .95rem;
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,.2); }
+  input::placeholder { color: #4a5170; }
+
+  /* test row */
+  .test-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1.4fr 1.2fr auto;
+    gap: .5rem;
+    align-items: end;
+    margin-bottom: .6rem;
+  }
+  @media(max-width:540px){
+    .test-row { grid-template-columns: 1fr 1fr; }
+    .test-row .del-btn { grid-column: 2; justify-self: end; }
+  }
+  .test-row label { font-size: .75rem; }
+
+  .del-btn {
+    background: rgba(255,107,107,.12);
+    border: 1px solid rgba(255,107,107,.25);
+    color: var(--red);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.1rem;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .del-btn:hover { background: rgba(255,107,107,.25); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    font-size: .93rem; font-weight: 700;
+    border-radius: 9px; padding: .65rem 1.4rem;
+    cursor: pointer; border: none; transition: all .2s;
+    line-height: 1;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(108,99,255,.35);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,.45); }
+  .btn-secondary {
+    background: var(--bg3);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--accent); }
+  .btn-row { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+
+  /* ── RESULT HERO ── */
+  .result-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    text-align: center;
+  }
+  .stat-box .val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent2);
+    line-height: 1.1;
+  }
+  .stat-box .unit { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+  .stat-box .lbl { font-size: .72rem; color: var(--muted); margin-top: .4rem; text-transform: uppercase; letter-spacing: .06em; }
+
+  /* ── ZONES TABLE ── */
+  .zones-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .zones-table th {
+    text-align: left;
+    padding: .5rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .zones-table td { padding: .55rem .75rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .zones-table tr:last-child td { border-bottom: none; }
+  .zone-badge {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-weight: 700; font-size: .82rem;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── PREDICTIONS TABLE ── */
+  .pred-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .pred-table th { text-align: left; padding: .5rem .75rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .pred-table td { padding: .55rem .75rem; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .pred-table tr:last-child td { border-bottom: none; }
+  .pred-table .dist { font-weight: 700; color: var(--text); }
+  .pred-table .time { color: var(--accent2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pred-table .spd  { color: var(--green); font-variant-numeric: tabular-nums; }
+  .pred-table .pace { color: var(--muted); font-size: .83rem; font-variant-numeric: tabular-nums; }
+
+  /* ── ALERT / ERROR ── */
+  .alert {
+    background: rgba(255,107,107,.1);
+    border: 1px solid rgba(255,107,107,.3);
+    color: var(--red);
+    border-radius: 9px;
+    padding: .85rem 1.1rem;
+    font-size: .88rem;
+    font-weight: 500;
+    margin-top: 1rem;
+  }
+  .info-box {
+    background: rgba(108,99,255,.1);
+    border: 1px solid rgba(108,99,255,.25);
+    border-radius: 9px;
+    padding: .85rem 1.1rem;
+    font-size: .87rem;
+    color: var(--accent2);
+    margin-top: 1rem;
+  }
+
+  /* ── TOGGLE ── */
+  .toggle-group { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+  .toggle-btn {
+    flex: 1; padding: .55rem .75rem; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--muted); font-size: .85rem; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all .2s;
+  }
+  .toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── SPRINT SECTION ── */
+  .sprint-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    margin-top: 1rem;
+  }
+  @media(max-width:500px){ .sprint-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* ── R² QUALITY ── */
+  .quality-bar { height: 6px; border-radius: 3px; background: var(--bg3); margin-top: .4rem; overflow: hidden; }
+  .quality-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--green), var(--accent)); transition: width .5s; }
+
+  /* ── SECTION DIVIDER ── */
+  .section { margin-top: 2rem; }
+  .section-title {
+    display: flex; align-items: center; gap: .75rem;
+    font-size: 1rem; font-weight: 700; color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+    font-size: .8rem;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── HIDDEN ── */
+  .hidden { display: none !important; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+  .fade-in { animation: fadeIn .35s ease both; }
+
+  /* ── TOOLTIP ── */
+  .help {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--muted); font-size: .65rem; font-weight: 700;
+    cursor: help; vertical-align: middle; margin-left: .3rem;
+    position: relative;
+  }
+  .help:hover .tip { display: block; }
+  .tip {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #2e334d; color: var(--text); font-size: .78rem; font-weight: 400;
+    padding: .5rem .75rem; border-radius: 7px; white-space: nowrap; z-index: 99;
+    box-shadow: var(--shadow); pointer-events: none; min-width: 180px; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="badge">⚡ Analyse Performance Course</div>
+  <h1>Calculateur <span>Vitesse Critique</span><br>& Power Law</h1>
+  <p>Détermine ta vitesse critique, tes zones d'entraînement et tes prédictions de course grâce aux modèles scientifiques.</p>
+</header>
+
+<main>
+<div class="container">
+
+  <!-- SECTION SAISIE -->
+  <div class="card">
+    <h2>📋 Données de test</h2>
+    <p style="margin-bottom:1.25rem">Saisis au minimum 2 efforts maximal à des distances différentes (durée et allure moyenne <strong>ou</strong> durée et distance).</p>
+
+    <div class="toggle-group">
+      <div class="toggle-btn active" onclick="switchMode('pace')" id="modeBtn-pace">Mode Allure (MM:SS/km)</div>
+      <div class="toggle-btn" onclick="switchMode('dist')" id="modeBtn-dist">Mode Distance (m)</div>
+    </div>
+
+    <div id="tests-container"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="addTest()">+ Ajouter un test</button>
+    </div>
+
+    <!-- OPTIONS -->
+    <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border);">
+      <h3>Options</h3>
+      <div class="grid2">
+        <div class="input-group">
+          <label>Temps 100 m (MM:SS ou s) <span class="help">?<span class="tip">Optionnel — pour calculer la réserve de vitesse anaérobie</span></span></label>
+          <input type="text" id="inp-100m" placeholder="ex: 0:14 ou 14">
+        </div>
+        <div class="input-group">
+          <label>FC max connue (bpm) <span class="help">?<span class="tip">Optionnel — affine les zones fréquence cardiaque</span></span></label>
+          <input type="number" id="inp-fcmax" placeholder="ex: 192" min="100" max="230">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:1.25rem">
+      <button class="btn btn-primary" onclick="runCalc()">⚡ Calculer</button>
+      <button class="btn btn-secondary" onclick="resetAll()">↺ Réinitialiser</button>
+    </div>
+
+    <div id="error-box" class="hidden"></div>
+  </div>
+
+  <!-- RÉSULTATS -->
+  <div id="results" class="hidden fade-in">
+
+    <!-- KPIs -->
+    <div class="section">
+      <div class="section-title">Résultats clés</div>
+      <div class="result-hero" id="kpi-grid"></div>
+    </div>
+
+    <!-- Qualité du modèle -->
+    <div id="model-quality" class="info-box" style="margin-top:-.5rem; margin-bottom:1.5rem;"></div>
+
+    <!-- ZONES VITESSE + FC (côte à côte sur desktop) -->
+    <div class="grid2">
+      <div class="card">
+        <h2>🏃 Zones de vitesse</h2>
+        <p style="margin-bottom:1rem; font-size:.82rem">Basées sur % de la vitesse critique</p>
+        <table class="zones-table" id="speed-zones-table">
+          <thead><tr><th>Zone</th><th>Vitesse</th><th>Allure</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card" id="hr-zones-card">
+        <h2>❤️ Zones fréquence cardiaque</h2>
+        <p style="margin-bottom:1rem; font-size:.82rem" id="hr-zones-subtitle"></p>
+        <table class="zones-table" id="hr-zones-table">
+          <thead><tr><th>Zone</th><th>FC</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PRÉDICTIONS -->
+    <div class="section">
+      <div class="section-title">Prédictions de course</div>
+      <div class="card">
+        <p style="margin-bottom:1rem; font-size:.82rem">Combinaison du modèle vitesse critique et de la loi de puissance de Riegel</p>
+        <table class="pred-table">
+          <thead><tr><th>Distance</th><th>Temps prédit</th><th>Vitesse</th><th>Allure</th></tr></thead>
+          <tbody id="pred-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SPRINT -->
+    <div class="section" id="sprint-section">
+      <div class="section-title">Capacités de sprint</div>
+      <div class="card">
+        <div class="sprint-grid" id="sprint-grid"></div>
+      </div>
+    </div>
+
+    <!-- EXPLICATION -->
+    <div class="section">
+      <div class="section-title">Comprendre tes résultats</div>
+      <div class="card">
+        <div id="interpretation-text"></div>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+</div><!-- /container -->
+</main>
+
+<footer>
+  Calculateur basé sur le modèle vitesse critique (régression linéaire D/T) et la loi de puissance de Riegel.<br>
+  Conçu pour les sports d'endurance • Données à titre indicatif
+</footer>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  MOTEUR DE CALCUL
+// ════════════════════════════════════════════════════════════
+
+/* ── Utilitaires ─────────────────────────────────────────── */
+function parseTime(str) {
+  if (!str || !str.trim()) return null;
+  const s = str.trim();
+  const parts = s.split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  if (parts.length === 2) return parts[0]*60  + parts[1];
+  return Number(s) || null;
+}
+
+function secondsToHMS(sec) {
+  if (!sec || sec <= 0) return '—';
+  const h = Math.floor(sec/3600);
+  const m = Math.floor((sec%3600)/60);
+  const s = Math.round(sec%60);
+  if (h > 0) return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  return m+':'+String(s).padStart(2,'0');
+}
+
+function speedToPace(kmh) {
+  if (!kmh || kmh <= 0) return '—';
+  const sPerKm = 3600/kmh;
+  const m = Math.floor(sPerKm/60);
+  const s = Math.round(sPerKm%60);
+  return m+':'+String(s).padStart(2,'0')+' /km';
+}
+
+function r(n,d=2) { return Math.round(n * Math.pow(10,d)) / Math.pow(10,d); }
+
+/* ── Vitesse critique (OLS sur D = VC·T + D') ───────────── */
+function calcCriticalSpeed(pts) {
+  const n = pts.length;
+  const sumT  = pts.reduce((a,p)=>a+p.t,0);
+  const sumD  = pts.reduce((a,p)=>a+p.d,0);
+  const sumTT = pts.reduce((a,p)=>a+p.t*p.t,0);
+  const sumTD = pts.reduce((a,p)=>a+p.t*p.d,0);
+  const den   = n*sumTT - sumT*sumT;
+  if (Math.abs(den) < 1e-10) return null;
+  const vcMs  = (n*sumTD - sumT*sumD) / den;
+  const dp    = (sumD - vcMs*sumT) / n;
+  const meanD = sumD/n;
+  const ssTot = pts.reduce((a,p)=>a+Math.pow(p.d-meanD,2),0);
+  const ssRes = pts.reduce((a,p)=>a+Math.pow(p.d-(vcMs*p.t+dp),2),0);
+  const r2    = ssTot>0 ? 1-ssRes/ssTot : 1;
+  return { vcMs, vcKmh: vcMs*3.6, dp, r2: Math.max(0, Math.min(1, r2)) };
+}
+
+/* ── Loi de Riegel (OLS sur log T = k·log D + log a) ─────── */
+function calcRiegel(pts) {
+  const n = pts.length;
+  const lD = pts.map(p=>Math.log(p.d));
+  const lT = pts.map(p=>Math.log(p.t));
+  const mD = lD.reduce((a,v)=>a+v,0)/n;
+  const mT = lT.reduce((a,v)=>a+v,0)/n;
+  let num=0, den=0;
+  for(let i=0;i<n;i++){ num+=(lD[i]-mD)*(lT[i]-mT); den+=Math.pow(lD[i]-mD,2); }
+  if(Math.abs(den)<1e-10) return null;
+  const k = num/den;
+  const a = Math.exp(mT - k*mD);
+  return { k, a };
+}
+
+function predictRiegel(d, rig) { return rig ? rig.a*Math.pow(d,rig.k) : null; }
+
+/* ── Seuil 1 ────────────────────────────────────────────── */
+function seuil1(vcKmh) { return vcKmh * 0.82; }
+
+/* ── Zones vitesse ──────────────────────────────────────── */
+const SPEED_ZONES = [
+  { id:1, name:'Récupération', color:'#60a5fa', low:.60, high:.70 },
+  { id:2, name:'Endurance',    color:'#34d399', low:.70, high:.82 },
+  { id:3, name:'Tempo',        color:'#fbbf24', low:.82, high:.88 },
+  { id:4, name:'Seuil',        color:'#fb923c', low:.88, high:.97 },
+  { id:5, name:'VO₂max',       color:'#f87171', low:.97, high:1.05},
+  { id:6, name:'Vitesse',      color:'#e879f9', low:1.05,high:null},
+];
+
+function speedZones(vcKmh) {
+  return SPEED_ZONES.map(z=>({
+    ...z,
+    lowKmh:  r(vcKmh*z.low ),
+    highKmh: z.high ? r(vcKmh*z.high) : null,
+    lowPace:  speedToPace(vcKmh*z.low),
+    highPace: z.high ? speedToPace(vcKmh*z.high) : null,
+  }));
+}
+
+/* ── FC seuil par régression ─────────────────────────────── */
+function estimateHRThreshold(pts, vcKmh) {
+  const v = pts.filter(p=>p.hr>0);
+  if(v.length<2) return null;
+  const speeds = v.map(p=>({ v:(p.d/p.t)*3.6, hr:p.hr }));
+  const n=speeds.length, sV=speeds.reduce((a,s)=>a+s.v,0), sHR=speeds.reduce((a,s)=>a+s.hr,0);
+  const sVV=speeds.reduce((a,s)=>a+s.v*s.v,0), sVHR=speeds.reduce((a,s)=>a+s.v*s.hr,0);
+  const den=n*sVV-sV*sV;
+  if(Math.abs(den)<1e-10) return null;
+  const slope=(n*sVHR-sV*sHR)/den, inter=(sHR-slope*sV)/n;
+  return Math.round(slope*vcKmh+inter);
+}
+
+/* ── Zones FC ────────────────────────────────────────────── */
+const HR_ZONES = [
+  { id:1, name:'Récupération', color:'#60a5fa', low:0,    high:.85 },
+  { id:2, name:'Endurance',    color:'#34d399', low:.85,  high:.90 },
+  { id:3, name:'Tempo',        color:'#fbbf24', low:.90,  high:.95 },
+  { id:4, name:'Seuil',        color:'#fb923c', low:.95,  high:1.00},
+  { id:5, name:'VO₂max+',      color:'#f87171', low:1.00, high:null},
+];
+function hrZones(hrS) {
+  return HR_ZONES.map(z=>({
+    ...z,
+    lowBpm:  z.low>0 ? Math.round(hrS*z.low) : null,
+    highBpm: z.high  ? Math.round(hrS*z.high): null,
+  }));
+}
+
+/* ── Prédictions course ─────────────────────────────────── */
+const DISTS = [
+  {label:'1 500 m', m:1500}, {label:'3 000 m', m:3000},
+  {label:'5 000 m', m:5000}, {label:'10 000 m',m:10000},
+  {label:'Semi-marathon',m:21097},{label:'Marathon',m:42195},
+];
+function predictions(vcRes, rig) {
+  return DISTS.map(d=>{
+    let tVC  = vcRes && vcRes.dp>=0 ? (d.m-vcRes.dp)/vcRes.vcMs : null;
+    let tRig = rig ? predictRiegel(d.m,rig) : null;
+    if(tVC && tVC<=0) tVC=null;
+    let t = null;
+    if(tVC && tRig) t = d.m>=3000 ? tVC : tRig;
+    else t = tVC || tRig;
+    if(!t||t<=0) return {...d,t:null};
+    const spd = (d.m/1000)/(t/3600);
+    return {...d,t,tStr:secondsToHMS(t),spd:r(spd),pace:speedToPace(spd)};
+  });
+}
+
+/* ── Sprint ─────────────────────────────────────────────── */
+function vmaxFrom100(tSec) { return tSec>0 ? r((100/tSec)*3.6,1) : null; }
+function sprintData(vcKmh, vmax) {
+  if(!vmax) return null;
+  return {
+    vmax, asr:r(vmax-vcKmh,1),
+    aerRatio:r(vcKmh/vmax,2), anaRatio:r((vmax-vcKmh)/vmax,2)
+  };
+}
+
+/* ── CALCUL PRINCIPAL ───────────────────────────────────── */
+function calculate(pts, t100, fcmax) {
+  if(pts.length<2) return {err:'Au moins 2 tests sont nécessaires.'};
+  const vcRes = calcCriticalSpeed(pts);
+  if(!vcRes || vcRes.vcMs<=0) return {err:'Impossible de calculer la vitesse critique. Vérifiez vos valeurs.'};
+  const rig   = calcRiegel(pts);
+  const vc    = vcRes.vcKmh;
+  const s1    = seuil1(vc);
+  const ei    = rig ? r(rig.k,2) : null;
+  const hrS   = estimateHRThreshold(pts, vc);
+  const szones= speedZones(vc);
+  const hrzones= hrS ? hrZones(hrS) : (fcmax ? hrZones(Math.round(fcmax*0.88)) : null);
+  const hrSubtitle = hrS ? 'Basées sur la FC seuil estimée par régression' : (fcmax ? 'Basées sur 88% de ta FC max déclarée' : null);
+  const preds = predictions(vcRes, rig);
+  const vmax  = t100 ? vmaxFrom100(t100) : null;
+  const sprint= sprintData(vc, vmax);
+  return {
+    vcKmh: r(vc,2), vcPace: speedToPace(vc),
+    dp: Math.round(vcRes.dp), r2: r(vcRes.r2,3),
+    s1Kmh: r(s1,2), s1Pace: speedToPace(s1),
+    ei, riegelK: rig?r(rig.k,2):null,
+    hrSeuil: hrS, hrSubtitle,
+    szones, hrzones, preds, sprint
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════════════════
+
+let mode = 'pace'; // 'pace' | 'dist'
+let testCount = 0;
+const tests = [];   // index → {id, distInput, timeInput, hrInput}
+
+function switchMode(m) {
+  mode = m;
+  document.getElementById('modeBtn-pace').classList.toggle('active', m==='pace');
+  document.getElementById('modeBtn-dist').classList.toggle('active', m==='dist');
+  rebuildTests();
+}
+
+function addTest() {
+  const id = ++testCount;
+  tests.push({ id });
+  renderTestRow(id);
+}
+
+function removeTest(id) {
+  const idx = tests.findIndex(t=>t.id===id);
+  if(idx!==-1) tests.splice(idx,1);
+  const row = document.getElementById('row-'+id);
+  if(row) row.remove();
+}
+
+function rebuildTests() {
+  const container = document.getElementById('tests-container');
+  container.innerHTML = '';
+  tests.forEach(t=>renderTestRow(t.id));
+}
+
+function renderTestRow(id) {
+  const container = document.getElementById('tests-container');
+  const existing  = document.getElementById('row-'+id);
+  if(existing) { existing.remove(); }
+
+  const row = document.createElement('div');
+  row.className = 'test-row';
+  row.id = 'row-'+id;
+
+  if(mode==='pace') {
+    row.innerHTML = `
+      <div class="input-group">
+        ${id===1?'<label>Distance</label>':''}
+        <input type="text" id="dist-${id}" placeholder="ex: 5000m, 10k, 21k">
+      </div>
+      <div class="input-group">
+        ${id===1?'<label>Durée (HH:MM:SS)</label>':''}
+        <input type="text" id="time-${id}" placeholder="ex: 0:21:30">
+      </div>
+      <div class="input-group">
+        ${id===1?'<label>FC moy. (bpm)</label>':''}
+        <input type="number" id="hr-${id}" placeholder="opt." min="60" max="230">
+      </div>
+      <button class="del-btn" onclick="removeTest(${id})" title="Supprimer">✕</button>
+    `;
+  } else {
+    row.innerHTML = `
+      <div class="input-group">
+        ${id===1?'<label>Distance (m)</label>':''}
+        <input type="number" id="dist-${id}" placeholder="ex: 5000" min="100">
+      </div>
+      <div class="input-group">
+        ${id===1?'<label>Temps (HH:MM:SS)</label>':''}
+        <input type="text" id="time-${id}" placeholder="ex: 21:30">
+      </div>
+      <div class="input-group">
+        ${id===1?'<label>FC moy. (bpm)</label>':''}
+        <input type="number" id="hr-${id}" placeholder="opt." min="60" max="230">
+      </div>
+      <button class="del-btn" onclick="removeTest(${id})" title="Supprimer">✕</button>
+    `;
+  }
+  container.appendChild(row);
+}
+
+function parseDistInput(val) {
+  if(!val||!val.trim()) return null;
+  const s = val.trim().toLowerCase().replace(/\s/g,'');
+  if(s.endsWith('km')) return parseFloat(s)*1000;
+  if(s.endsWith('k'))  return parseFloat(s)*1000;
+  if(s.endsWith('m'))  return parseFloat(s);
+  const num = parseFloat(s);
+  return isNaN(num) ? null : num;
+}
+
+function gatherTests() {
+  return tests.map(t=>{
+    const dRaw  = document.getElementById('dist-'+t.id)?.value || '';
+    const tRaw  = document.getElementById('time-'+t.id)?.value || '';
+    const hrRaw = document.getElementById('hr-'+t.id)?.value  || '';
+    const d = parseDistInput(dRaw);
+    const time = parseTime(tRaw);
+    const hr = hrRaw ? Number(hrRaw) : 0;
+    return { d: d||0, t: time||0, hr: hr||0 };
+  }).filter(t=>t.d>0&&t.t>0);
+}
+
+function runCalc() {
+  const pts   = gatherTests();
+  const t100Raw = document.getElementById('inp-100m').value;
+  const fcmax   = parseFloat(document.getElementById('inp-fcmax').value) || null;
+  const t100    = t100Raw ? parseTime(t100Raw) : null;
+
+  const errBox = document.getElementById('error-box');
+  errBox.classList.add('hidden');
+
+  if(pts.length<2) {
+    errBox.innerHTML = '⚠️ Saisis au moins 2 tests valides (distance + temps).';
+    errBox.className = 'alert';
+    return;
+  }
+
+  const res = calculate(pts, t100, fcmax);
+  if(res.err) {
+    errBox.innerHTML = '⚠️ '+res.err;
+    errBox.className = 'alert';
+    return;
+  }
+
+  renderResults(res);
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function resetAll() {
+  tests.length = 0; testCount = 0;
+  document.getElementById('tests-container').innerHTML = '';
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('error-box').classList.add('hidden');
+  document.getElementById('inp-100m').value = '';
+  document.getElementById('inp-fcmax').value = '';
+  addTest(); addTest(); addTest();
+}
+
+/* ── RENDU DES RÉSULTATS ─────────────────────────────────── */
+function renderResults(res) {
+  // KPIs
+  const kpiGrid = document.getElementById('kpi-grid');
+  kpiGrid.innerHTML = `
+    <div class="stat-box">
+      <div class="val">${res.vcKmh}</div>
+      <div class="unit">km/h</div>
+      <div class="lbl">Vitesse critique</div>
+    </div>
+    <div class="stat-box">
+      <div class="val">${res.vcPace}</div>
+      <div class="unit"></div>
+      <div class="lbl">Allure critique</div>
+    </div>
+    <div class="stat-box">
+      <div class="val">${res.s1Kmh}</div>
+      <div class="unit">km/h · ${res.s1Pace}</div>
+      <div class="lbl">Seuil 1 estimé</div>
+    </div>
+    ${res.ei!==null ? `
+    <div class="stat-box">
+      <div class="val">${res.ei}</div>
+      <div class="unit">coeff. Riegel</div>
+      <div class="lbl">Index d'endurance</div>
+    </div>` : ''}
+    ${res.dp!==null ? `
+    <div class="stat-box">
+      <div class="val">${res.dp>=0?'+':''}${res.dp}</div>
+      <div class="unit">mètres</div>
+      <div class="lbl">D' (capacité anaérobie)</div>
+    </div>` : ''}
+    ${res.hrSeuil ? `
+    <div class="stat-box">
+      <div class="val">${res.hrSeuil}</div>
+      <div class="unit">bpm</div>
+      <div class="lbl">FC seuil estimée</div>
+    </div>` : ''}
+  `;
+
+  // Qualité modèle
+  const q = res.r2;
+  const qLabel = q>=.98?'Excellent':'q>=.93?Très bon':'q>=.85?Bon':'Faible';
+  const qColor = q>=.93?'var(--green)':'q>=.85?var(--yellow)':'var(--red)';
+  document.getElementById('model-quality').innerHTML = `
+    <strong>Qualité du modèle (R² = ${res.r2})</strong> — ${
+      q>=.98?'Excellent ajustement. Tes tests sont très cohérents.':
+      q>=.93?'Très bon ajustement. Les résultats sont fiables.':
+      q>=.85?'Bon ajustement. Quelques variations entre tes tests.':
+      'Ajustement faible. Vérifie la cohérence de tes tests (conditions différentes ?).'
+    }
+    <div class="quality-bar" style="margin-top:.6rem">
+      <div class="quality-fill" style="width:${Math.round(q*100)}%; background:${q>=.93?'var(--green)':q>=.85?'var(--yellow)':'var(--red)'}"></div>
+    </div>
+  `;
+
+  // Zones vitesse
+  const szBody = document.querySelector('#speed-zones-table tbody');
+  szBody.innerHTML = res.szones.map(z=>`
+    <tr>
+      <td><span class="zone-badge">
+        <span class="dot" style="background:${z.color}"></span>
+        Z${z.id} · ${z.name}
+      </span></td>
+      <td style="font-variant-numeric:tabular-nums; color:var(--text)">${z.lowKmh}${z.highKmh?' – '+z.highKmh:'+' } km/h</td>
+      <td style="color:var(--muted); font-size:.83rem">${z.highPace?z.highPace+' – '+z.lowPace : '< '+z.lowPace}</td>
+    </tr>
+  `).join('');
+
+  // Zones FC
+  const hrCard = document.getElementById('hr-zones-card');
+  if(res.hrzones) {
+    hrCard.classList.remove('hidden');
+    document.getElementById('hr-zones-subtitle').textContent = res.hrSubtitle || '';
+    const hrBody = document.querySelector('#hr-zones-table tbody');
+    hrBody.innerHTML = res.hrzones.map(z=>`
+      <tr>
+        <td><span class="zone-badge">
+          <span class="dot" style="background:${z.color}"></span>
+          Z${z.id} · ${z.name}
+        </span></td>
+        <td style="font-variant-numeric:tabular-nums; color:var(--text)">${
+          z.lowBpm && z.highBpm ? z.lowBpm+' – '+z.highBpm+' bpm' :
+          z.lowBpm ? '> '+z.lowBpm+' bpm' : '≤ '+z.highBpm+' bpm'
+        }</td>
+      </tr>
+    `).join('');
+  } else {
+    hrCard.innerHTML = `
+      <h2>❤️ Zones fréquence cardiaque</h2>
+      <p style="font-size:.87rem; margin-top:.5rem">Saisis la <strong>FC moyenne</strong> de tes tests ou ta <strong>FC max</strong> pour obtenir les zones cardiaques.</p>
+    `;
+  }
+
+  // Prédictions
+  const predBody = document.getElementById('pred-table-body');
+  predBody.innerHTML = res.preds.map(p=> p.t ? `
+    <tr>
+      <td class="dist">${p.label}</td>
+      <td class="time">${p.tStr}</td>
+      <td class="spd">${p.spd} km/h</td>
+      <td class="pace">${p.pace}</td>
+    </tr>
+  ` : `
+    <tr>
+      <td class="dist">${p.label}</td>
+      <td colspan="3" style="color:var(--muted); font-size:.83rem">Données insuffisantes</td>
+    </tr>
+  `).join('');
+
+  // Sprint
+  const sprintSection = document.getElementById('sprint-section');
+  const sprintGrid    = document.getElementById('sprint-grid');
+  if(res.sprint) {
+    sprintSection.classList.remove('hidden');
+    sprintGrid.innerHTML = `
+      <div class="stat-box">
+        <div class="val">${res.sprint.vmax}</div>
+        <div class="unit">km/h</div>
+        <div class="lbl">Vitesse max (100 m)</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">${res.sprint.asr}</div>
+        <div class="unit">km/h</div>
+        <div class="lbl">Réserve anaérobie (ASR)</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">${Math.round(res.sprint.aerRatio*100)}%</div>
+        <div class="unit">VC / Vmax</div>
+        <div class="lbl">Ratio aérobie</div>
+      </div>
+    `;
+  } else {
+    sprintSection.classList.add('hidden');
+  }
+
+  // Interprétation
+  const ei = res.ei;
+  let interp = '';
+  if(ei!==null) {
+    if(ei>=1.12) interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un <strong>profil vitesse</strong> — tu es performant sur les courtes distances mais perdras plus de temps sur les longues. Mise sur des entraînements d'endurance fondamentale et de tempo prolongé.`;
+    else if(ei>=1.07) interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un profil <strong>équilibré tendance vitesse</strong>. Un bon mélange d'endurance longue et de travail au seuil optimisera tes performances.`;
+    else if(ei>=1.04) interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un profil <strong>équilibré</strong>. Tu t'adaptes bien aux différentes distances. Continue à varier les allures.`;
+    else interp = `Ton coefficient de Riegel (<strong>${ei}</strong>) indique un <strong>profil endurance</strong> — tu es fort sur les longues distances. Pour progresser, ajoute du travail de vitesse et des intervalles courts à haute intensité.`;
+  }
+  const s1pct = Math.round((res.s1Kmh/res.vcKmh)*100);
+  interp += `<br><br>Ton <strong>seuil 1</strong> est estimé à ${res.s1Kmh} km/h (${s1pct}% de ta vitesse critique). La majorité de ton volume d'entraînement devrait se situer <em>en dessous</em> de ce seuil (Zone 1–2) pour développer ton moteur aérobie.`;
+  if(res.dp>0) interp += `<br><br>Ton <strong>D' = ${res.dp} m</strong> représente ta "batterie anaérobie" : l'énergie supplémentaire disponible au-dessus de la vitesse critique avant épuisement.`;
+  document.getElementById('interpretation-text').innerHTML = interp;
+}
+
+/* ── INITIALISATION ─────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', ()=>{
+  addTest(); addTest(); addTest();
+});
+</script>
+</body>
+</html>
